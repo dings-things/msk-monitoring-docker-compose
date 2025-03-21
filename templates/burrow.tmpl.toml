@@ -1,0 +1,55 @@
+[zookeeper]
+servers=[
+  "${ZOOKEEPER_HOST_1}:2181",
+  "${ZOOKEEPER_HOST_2}:2181",
+  "${ZOOKEEPER_HOST_3}:2181"
+]
+timeout=6
+root-path="/burrow"
+
+[client-profile.burrow-kafka-profile]
+kafka-version="3.9.0"
+client-id="burrow-test"
+sasl="burrow-sasl"
+tls="burrow-tls-profile"
+
+[tls.burrow-tls-profile]
+insecure-skip-verify=true
+
+[sasl.burrow-sasl]
+username="${BURROW_USERNAME}"
+password="${BURROW_PASSWORD}"
+handshake-first=true
+mechanism="SCRAM-SHA-512"
+
+[cluster.custom-burrow]
+class-name="kafka"
+servers=[
+  "${BROKER_HOST_1}:9096",
+  "${BROKER_HOST_2}:9096",
+  "${BROKER_HOST_3}:9096"
+]
+client-profile="burrow-kafka-profile"
+topic-refresh=120
+offset-refresh=30
+
+[consumer.custom-burrow]
+class-name="kafka"
+cluster="custom-burrow"
+servers=[
+  "${BROKER_HOST_1}:9096",
+  "${BROKER_HOST_2}:9096",
+  "${BROKER_HOST_3}:9096"
+]
+client-profile="burrow-kafka-profile"
+allowlist=""
+
+[httpserver.default]
+address=":${BURROW_PORT}"
+
+[storage.default]
+class-name="inmemory"
+workers=20
+intervals=15
+expire-group=604800
+min-distance=1

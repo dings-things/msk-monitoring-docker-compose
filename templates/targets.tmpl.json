@@ -1,0 +1,23 @@
+[
+    {
+      "labels": {
+        "job": "jmx"
+      },
+      "targets": [
+        "${BROKER_HOST_1}:11001",
+        "${BROKER_HOST_2}:11001",
+        "${BROKER_HOST_3}:11001"
+      ]
+    },
+    {
+      "labels": {
+        "job": "node"
+      },
+      "targets": [
+        "${BROKER_HOST_1}:11002",
+        "${BROKER_HOST_2}:11002",
+        "${BROKER_HOST_3}:11002"
+      ]
+    }
+  ]
+  
