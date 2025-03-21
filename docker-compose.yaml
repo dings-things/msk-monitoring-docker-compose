@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  prometheus:
+    image: quay.io/prometheus/prometheus:v2.53.2
+    container_name: prometheus
+    restart: unless-stopped
+    user: "root"
+    volumes:
+      - ./generated/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+      - ./generated/targets.json:/etc/prometheus/targets.json:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=2d'
+      - '--web.enable-lifecycle'
+      - '--storage.tsdb.max-block-duration=2h'
+      - '--storage.tsdb.min-block-duration=2h'
+    ports:
+      - "${PROMETHEUS_PORT:-9090}:9090"
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  thanos-sidecar:
+    image: quay.io/thanos/thanos:v0.34.0
+    container_name: thanos-sidecar
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    user: "root"
+    volumes:
+      - prometheus_data:/prometheus:ro
+      - ./generated/prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
+    command:
+      - 'sidecar'
+      - '--log.level=info'
+      - '--tsdb.path=/prometheus'
+      - '--prometheus.url=http://prometheus:9090'
+      - '--grpc-address=0.0.0.0:10901'
+      - '--http-address=0.0.0.0:10902'
+    ports:
+      - "10901:10901"
+      - "10902:10902"
+    networks:
+      - monitoring
+
+  burrow:
+    image: linkedin/burrow:latest
+    container_name: burrow
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    volumes:
+      - ./generated/burrow.toml:/etc/burrow/burrow.toml:ro
+      - burrow_logs:/logs
+    ports:
+      - "${BURROW_PORT:-8000}:8000"
+    command:
+      - "/app/burrow"
+      - "--config-dir"
+      - "/etc/burrow"
+    networks:
+      - monitoring
+
+volumes:
+  prometheus_data:
+  burrow_logs:
+
+networks:
+  monitoring:
+    driver: bridge
